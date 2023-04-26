@@ -34,7 +34,11 @@ def profit(h, a=a, b=b):
     y = a*h - b*(h**2)
     return y
 
-def Payoff(h, x, V):
+def Payoff(params, *args):
+    x = args[0]
+    V = args[1]
+    h = params
+
     x_next = growth(h,x)
     V_next = scipy.interpolate.CubicSpline(x_grid,V)
     V_next = V_next(x_next)
@@ -46,7 +50,7 @@ DF_test = pd.DataFrame(x_grid,Payoff(x_grid, 5, V)).reset_index()
 #region Initiate problem:
 V = np.repeat(0,size_x)
 V_next = [0]*size_x
-DF_all = pd.DataFrame(columns = ['t', 'x', 'h_star', 'V_star'])
+DF_all = pd.DataFrame(columns = ['t', 'x', 'h_star', 'V_star', 'growth'])
 
 Payoff(.17992, 0.1, V)
 #endregion
@@ -56,17 +60,15 @@ for t in range(T,0,-1):
     print(t)
     for i in range(len(x_grid)):
         guess = x_grid[i]/2
-        bnds = scipy.optimize.Bounds((0),(growth(0,x_grid[i])))
-        Opti = scipy.optimize.minimize(Payoff,
-                                       args = (x_grid[i],V),
-                                       x0 = guess,
-                                       bounds = bnds,
-                                       method = 'L-BFGS-B')
-        if Opti.success == False:
-            print('Problemo at ' + str(i) + ' in period t=' + str(t))
-        Now = [t, x_grid[i], Opti.x[0], -Opti.fun]
+        bnds = ((0,growth(0,x_grid[i])),)
+        Opti = scipy.optimize.fmin_l_bfgs_b(Payoff,
+                                             args = (x_grid[i],V),
+                                             x0 = guess,
+                                             bounds = bnds,
+                                            approx_grad=True)
+        Now = [t, x_grid[i], Opti[0][0], -Opti[1], growth(0, x_grid[i])]
         DF_all.loc[len(DF_all)] = Now
-        V_next[i] = -Opti.fun
+        V_next[i] = -Opti[1]
     V = V_next
 #endregion
 sns.lineplot(DF_all, x='x', y= 'h_star', hue = 't')
