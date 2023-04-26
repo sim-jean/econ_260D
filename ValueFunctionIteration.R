@@ -69,7 +69,7 @@ for(t in T:1)
   }
   V = Vnext
 }
-write.csv(DFall, )
+write.csv(DFall, "C:/Users/jean/PycharmProjects/costello_class/results_with_r.csv")
 ### Test while ####
 tol = 1
 diff = 1000
